@@ -1,0 +1,97 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify tag matches package version
+        shell: pwsh
+        run: |
+          $tagVersion = "${env:GITHUB_REF_NAME}" -replace '^v', '' -replace '-.*$', ''
+          $cargoVersion = (Select-String -Path 'Cargo.toml' -Pattern '^version = "(.*)"').Matches[0].Groups[1].Value
+          if ($tagVersion -ne $cargoVersion) {
+            Write-Error "Tag '$env:GITHUB_REF_NAME' (parsed as $tagVersion) does not match version = `"$cargoVersion`" in Cargo.toml. Bump the Cargo.toml version before tagging a release."
+            exit 1
+          }
+          Write-Host "Tag version $tagVersion matches Cargo.toml version $cargoVersion"
+
+      - name: Fetch PRH branding assets (internal use only, not in repo)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          New-Item -ItemType Directory -Force -Path Assets | Out-Null
+          $base = 'https://raw.githubusercontent.com/kirune/PRH_Computer_Info/main/Assets'
+          foreach ($f in 'AppIconNew.ico', 'prh_logo.png') {
+            try {
+              Invoke-WebRequest -Uri "$base/$f" -OutFile "Assets\$f"
+              Write-Host "Fetched $f"
+            } catch {
+              Write-Warning "Could not fetch ${f}: $_ — building without branding."
+            }
+          }
+
+      - name: Build (release, self-contained by nature)
+        run: cargo build --release --locked
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path publish | Out-Null
+          Copy-Item 'target\release\computer_info.exe' 'publish\ComputerInfo.exe'
+
+      - name: Zip artifacts
+        shell: pwsh
+        run: Compress-Archive -Path publish\* -DestinationPath "ComputerInfo-${env:GITHUB_REF_NAME}-win-x64.zip"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ComputerInfo-*-win-x64.zip
+            publish/ComputerInfo.exe
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Update internal winget manifest
+        shell: pwsh
+        run: |
+          $version = "${env:GITHUB_REF_NAME}" -replace '^v', '' -replace '-.*$', ''
+          $sha256 = (Get-FileHash -Algorithm SHA256 -Path 'publish\ComputerInfo.exe').Hash.ToLower()
+          $installerUrl = "https://github.com/${env:GITHUB_REPOSITORY}/releases/download/${env:GITHUB_REF_NAME}/ComputerInfo.exe"
+          $destDir = "manifests\p\prh\computerinfo\$version"
+
+          git fetch origin main:refs/remotes/origin/main
+          git checkout -B main origin/main
+
+          New-Item -ItemType Directory -Force -Path $destDir | Out-Null
+          $template = Get-Content 'manifests\_template\PRH.ComputerInfo.template.yaml' -Raw
+          $rendered = $template.Replace('__VERSION__', $version).Replace('__INSTALLER_URL__', $installerUrl).Replace('__INSTALLER_SHA256__', $sha256)
+          Set-Content -Path "$destDir\PRH.ComputerInfo.yaml" -Value $rendered -NoNewline
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$destDir\PRH.ComputerInfo.yaml"
+
+          $status = git status --porcelain
+          if ($status) {
+            git commit -m "Add winget manifest for $version ($env:GITHUB_REF_NAME) [skip ci]"
+            git push origin main
+          } else {
+            Write-Host "Manifest for $version already up to date, nothing to commit."
+          }

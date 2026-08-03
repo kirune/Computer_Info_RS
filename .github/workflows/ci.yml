@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # The shipping target — full quality gate plus a real release build.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: rustfmt
+        run: cargo fmt --check
+
+      - name: clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: tests
+        run: cargo test --locked
+
+      - name: release build
+        run: cargo build --release --locked
+
+      - name: Upload unbranded build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ComputerInfo-unbranded-win-x64
+          path: target/release/computer_info.exe
+
+  # Cheap cross-platform sanity: the UI and shared logic stay portable.
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+
+      - name: tests
+        run: cargo test --locked
