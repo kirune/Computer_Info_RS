@@ -1,0 +1,20 @@
+# Template used by .github/workflows/release.yml to render
+# manifests/p/prh/computerinfo/<version>/PRH.ComputerInfo.yaml on each release.
+# Not itself a valid winget manifest - placeholders are substituted in CI.
+# Same PackageIdentifier as the WPF app, so winget treats releases from this
+# repository as upgrades of the existing internal package.
+PackageIdentifier: PRH.ComputerInfo
+PackageVersion: 2.0.0
+PackageLocale: en-US
+Publisher: PRH
+PackageName: PRH Computer Info
+ShortDescription: Computer info desktop app for PRH IT support (Rust)
+License: GPL-3.0
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/kirune/Computer_Info_RS/releases/download/v2.0.0/ComputerInfo.exe
+    InstallerSha256: da524e237dc702581d8b7184ccfd0ff3ca76e94738bf6ec10e618a9050efac99
+    Scope: machine
+ManifestType: singleton
+ManifestVersion: 1.6.0
