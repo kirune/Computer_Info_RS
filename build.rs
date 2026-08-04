@@ -1,9 +1,9 @@
 //! Build script.
 //!
-//! PRH branding assets are *not* committed to this repository (see the
-//! "Additional Terms" section of the README). CI downloads them into
-//! `Assets/` before building; local builds without them get a transparent
-//! placeholder logo and no custom exe icon.
+//! PRH branding assets are vendored in `Assets/` (code license excludes the
+//! branding itself — see the "Additional Terms" section of the README).
+//! Builds without them get a transparent placeholder logo and no custom exe
+//! icon.
 
 use std::env;
 use std::fs;

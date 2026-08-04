@@ -34,7 +34,7 @@ cargo build --release
 
 The exe lands at `target\release\computer_info.exe`. The UI and shared logic also compile and run on Linux (with stubbed platform calls) for development.
 
-PRH branding assets (`Assets\AppIconNew.ico`, `Assets\prh_logo.png`) are **not** committed to this repository — CI fetches them from the internal source before release builds. Local builds without them produce a fully functional unbranded app.
+PRH branding assets (`Assets\AppIconNew.ico`, `Assets\prh_logo.png`) are vendored in this repository for build convenience; per the license terms below, the branding itself is excluded from the GPL-3.0 grant. Builds without them (e.g. if `Assets\` is removed) produce a fully functional unbranded app.
 
 ## Release process
 
