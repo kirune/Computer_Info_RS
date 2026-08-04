@@ -305,21 +305,27 @@ impl HelpCardApp {
         egui::ScrollArea::vertical().show(ui, |ui| {
             ui.add_space(10.0);
 
-            // Logo + title row. The title is centered on the row's full width,
-            // not just the space left after the logo — otherwise the logo's
-            // footprint on the left visibly shoves the text off-center.
+            // Logo + title row, matching the WPF original's Grid: a 100px
+            // logo column (image width capped at 80 after 10px margins on
+            // each side, height following the image's aspect ratio rather
+            // than a fixed height) with the title centered across the full
+            // row width — not just the space left after the logo, which
+            // would visibly shove the title off-center.
+            const LOGO_MAX_WIDTH: f32 = 80.0;
             ui.horizontal(|ui| {
                 let full_width = ui.available_width();
                 let mut logo_w = 0.0;
+                let mut row_h = 34.0;
                 if let Some(logo) = self.logo_texture(ctx) {
                     let aspect = logo.size_vec2().x / logo.size_vec2().y.max(1.0);
-                    let w = 80.0f32.min(60.0 * aspect);
+                    let h = LOGO_MAX_WIDTH / aspect.max(0.01);
                     ui.add_space(10.0);
-                    ui.add(egui::Image::new(&logo).fit_to_exact_size(Vec2::new(w, 60.0)));
-                    logo_w = w + 10.0;
+                    ui.add(egui::Image::new(&logo).fit_to_exact_size(Vec2::new(LOGO_MAX_WIDTH, h)));
+                    logo_w = LOGO_MAX_WIDTH + 10.0;
+                    row_h = h;
                 }
                 ui.allocate_ui_with_layout(
-                    Vec2::new((full_width - 2.0 * logo_w).max(0.0), 60.0),
+                    Vec2::new((full_width - 2.0 * logo_w).max(0.0), row_h),
                     egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
                     |ui| {
                         ui.label(
@@ -380,7 +386,7 @@ impl HelpCardApp {
                     theme::CARD_HOVER,
                     &[
                         ("Providence: 855-415-8188", 16.0),
-                        ("Informatics: 509-336-7xxx", 16.0),
+                        ("Informatics: 509-336-7677", 16.0),
                     ],
                     true,
                 )

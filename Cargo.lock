@@ -319,7 +319,7 @@ dependencies = [
 
 [[package]]
 name = "computer_info"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "chrono",
  "eframe",
